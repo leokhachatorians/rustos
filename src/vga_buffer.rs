@@ -1,7 +1,22 @@
 use core::ptr::Unique;
+use spin::Mutex;
 
 const BUFFER_HEIGHT: usize = 25;
 const BUFFER_WIDTH: usize = 80;
+
+macro_rules! println {
+    ($($arg:tt)*) => ({
+        use core::fmt::Write;
+        let mute writer = $crate::vga_buffer::WRITER.lock();
+        writer.write_fmt(format_args!($($arg)*)).unwrap();
+    });
+}
+
+pub static WRITER: Mutex<Writer> = Mutex::new(Writer {
+    column_position: 0,
+    color_code: ColorCode::new(Color::LightGreen, Color::Black),
+    buffer: unsafe { Unique::new(0xb8000 as *mut _) },
+});
 
 #[allow(dead_code)]
 #[repr(u8)]
@@ -54,17 +69,22 @@ impl Writer {
     fn buffer(&mut self) -> &mut Buffer {
         unsafe{ self.buffer.get_mut() }
     }
-    
     fn new_line(&mut self) {
-        for row in 0..(BUFFER_HEIGHT-1) {
+        for row in 0..(BUFFER_HEIGHT - 1) {
             let buffer = self.buffer();
             buffer.chars[row] = buffer.chars[row + 1]
         }
-        self.clear_row(BUFFER_HEIGHT-1);
+        self.clear_row(BUFFER_HEIGHT - 1);
         self.column_position = 0;
     }
 
-    fn clear_row(&mut self, row: usize) { }
+    fn clear_row(&mut self, row: usize) {
+        let blank = ScreenChar {
+            ascii_character: b' ',
+            color_code: self.color_code,
+        };
+        self.buffer().chars[row] = [blank; BUFFER_WIDTH];
+    }
 
     pub fn write_str(&mut self, s: &str) {
         for byte in s.bytes() {
@@ -111,5 +131,12 @@ pub fn print_something() {
     };
 
     writer.write_byte(b'T');
-    //writer.write_str("Testing ");
+    writer.write_str("Testing ");
+    write!(writer, "adawd");
+}
+
+pub fn clear_screen() {
+    for _ in 0..BUFFER_HEIGHT {
+        println!("");
+    }
 }

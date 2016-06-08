@@ -5,6 +5,7 @@ section .text
 bits 32
 start:
     mov esp, stack_top
+    mov edi, ebx
 
     call check_multiboot
     call check_cpuid
@@ -12,6 +13,7 @@ start:
 
     call set_up_page_tables
     call enable_paging
+    call set_up_SSE
 
     ; load the 64-bit GDT
     lgdt [gdt64.pointer]
@@ -25,6 +27,11 @@ start:
     jmp gdt64.code:long_mode_start
 
 set_up_page_tables:
+    ; recursive map P4
+    mov eax, p4_table
+    or eax, 0b11 ; present + writable
+    mov [p4_table + 511 * 8], eax
+
     ; map first P4 entry to P3 table
     mov eax, p3_table
     or eax, 0b11 ; present + writable
@@ -146,6 +153,26 @@ check_long_mode:
     mov al, "2"
     jmp error
 
+; Check for SSE, throw error if not supported
+set_up_SSE:
+        mov eax, 0x1
+        cpuid
+        test edx, 1<<25
+        jz .no_SSE
+
+        mov eax, cr0
+        and ax, 0xFFFB
+        or ax, 0x2
+        mov cr0, eax
+        mov eax, cr4
+        or ax, 3 << 9
+        mov cr4, eax
+
+        ret
+.no_SSE:
+        mov al, "a"
+        jmp error
+
 section .bss
 align 4096
 p4_table:
@@ -168,24 +195,3 @@ gdt64:
 .pointer:
     dw $ - gdt64 - 1
     dq gdt64
-
-; Check for SSE, throw error if not supported
-set_up_SEE:
-        mov eax, 0x1
-        cpuid
-        test edx, 1<<25
-        jz .no_SSE
-
-        mov eax, cr0
-        and ax, 0xFFFB
-        or ax, 0x2
-        mov cr0, eax
-        mov eax, cr4
-        or ax, 3 << 9
-        mov cr4, eax
-
-        ret
-
-.no_SSE:
-        mov al, "a"
-        jmp error
