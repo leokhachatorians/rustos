@@ -5,10 +5,14 @@ const BUFFER_HEIGHT: usize = 25;
 const BUFFER_WIDTH: usize = 80;
 
 macro_rules! println {
+    ($fmt:expr) => (print!(concat!($fmt, "\n")));
+    ($fmt:expr, $($arg:tt)*) => (print!(concat!($fmt, "\n"), $($arg)*));
+}
+
+macro_rules! print {
     ($($arg:tt)*) => ({
         use core::fmt::Write;
-        let mut writer = $crate::vga_buffer::WRITER.lock();
-        writer.write_fmt(format_args!($($arg)*)).unwrap();
+        $crate::vga_buffer::WRITER.lock().write_fmt(format_args!($($arg)*));
     });
 }
 
@@ -53,7 +57,6 @@ impl Writer {
                 if self.column_position >= BUFFER_WIDTH {
                     self.new_line();
                 }
-
                 let row = BUFFER_HEIGHT - 1;
                 let col = self.column_position;
 
