@@ -7,7 +7,7 @@ const BUFFER_WIDTH: usize = 80;
 macro_rules! println {
     ($($arg:tt)*) => ({
         use core::fmt::Write;
-        let mute writer = $crate::vga_buffer::WRITER.lock();
+        let mut writer = $crate::vga_buffer::WRITER.lock();
         writer.write_fmt(format_args!($($arg)*)).unwrap();
     });
 }
