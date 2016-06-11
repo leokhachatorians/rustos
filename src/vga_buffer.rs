@@ -12,7 +12,9 @@ macro_rules! println {
 macro_rules! print {
     ($($arg:tt)*) => ({
         use core::fmt::Write;
-        $crate::vga_buffer::WRITER.lock().write_fmt(format_args!($($arg)*));
+        let mut writer = $crate::vga_buffer::WRITER.lock();
+        //$crate::vga_buffer::WRITER.lock().write_fmt(format_args!($($arg)*));
+        writer.write_fmt(format_args!($($arg)*)).unwrap();
     });
 }
 
@@ -125,18 +127,18 @@ struct Buffer {
     chars: [[ScreenChar; BUFFER_WIDTH]; BUFFER_HEIGHT],
 }
 
-pub fn print_something() {
-    use core::fmt::Write;
-    let mut writer = Writer {
-        column_position: 0,
-        color_code: ColorCode::new(Color::LightGreen, Color::Black),
-        buffer: unsafe { Unique::new(0xb8000 as *mut _) },
-    };
-
-    writer.write_byte(b'T');
-    writer.write_str("Testing ");
-    write!(writer, "adawd");
-}
+//pub fn print_something() {
+//    use core::fmt::Write;
+//    let mut writer = Writer {
+//        column_position: 0,
+//        color_code: ColorCode::new(Color::LightGreen, Color::Black),
+//        buffer: unsafe { Unique::new(0xb8000 as *mut _) },
+//    };
+//
+//    writer.write_byte(b'T');
+//    writer.write_str("Testing ");
+//    write!(writer, "adawd");
+//}
 
 pub fn clear_screen() {
     for _ in 0..BUFFER_HEIGHT {
